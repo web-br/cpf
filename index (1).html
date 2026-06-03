@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Árvore Genealógica & Consulta CPF</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #0a0a0f;
+            --bg-card: #12121a;
+            --bg-card-hover: #1a1a28;
+            --border: #1e1e2e;
+            --border-hover: #2d2d44;
+            --text-primary: #e8e8f0;
+            --text-secondary: #8b8ba0;
+            --text-muted: #5a5a70;
+            --accent: #ff6b6b;
+            --accent-glow: rgba(255, 107, 107, 0.15);
+            --accent2: #4ecdc4;
+            --accent3: #ffe66d;
+            --accent4: #a78bfa;
+            --accent5: #f472b6;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            min-height: 100vh;
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+
+        /* Animated background */
+        .bg-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(255,107,107,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,107,107,0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .bg-glow {
+            position: fixed;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+            top: -200px;
+            left: 50%;
+            transform: translateX(-50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 35px;
+            padding-top: 10px;
+        }
+
+        .header-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            display: inline-block;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .header h1 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        /* Search Section */
+        .search-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+        }
+
+        .search-row {
+            display: flex;
+            gap: 15px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .input-group {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .input-group label {
+            display: block;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-wrapper input {
+            width: 100%;
+            padding: 16px 20px 16px 50px;
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            background: rgba(0,0,0,0.3);
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            font-family: 'Inter', monospace;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .input-wrapper input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px var(--accent-glow);
+        }
+
+        .input-wrapper .input-icon {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.2rem;
+            opacity: 0.5;
+        }
+
+        .btn-consultar {
+            padding: 16px 36px;
+            background: linear-gradient(135deg, var(--accent), #ff4757);
+            color: white;
+            border: none;
+            border-radius: 16px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 20px rgba(255,107,107,0.3);
+            height: fit-content;
+        }
+
+        .btn-consultar:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(255,107,107,0.4);
+        }
+
+        .btn-consultar:active {
+            transform: translateY(0);
+        }
+
+        .btn-consultar:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Results Container */
+        .results-container {
+            display: none;
+            animation: fadeInUp 0.6s ease;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Person Hero Card */
+        .person-hero {
+            background: linear-gradient(135deg, var(--bg-card) 0%, #1a1020 100%);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 35px;
+            margin-bottom: 25px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .person-hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent3));
+        }
+
+        .hero-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .hero-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: 700;
+            color: white;
+            flex-shrink: 0;
+            box-shadow: 0 4px 20px rgba(255,107,107,0.3);
+        }
+
+        .hero-info h2 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: var(--text-primary);
+        }
+
+        .hero-info .hero-cpf {
+            font-family: 'Inter', monospace;
+            color: var(--accent);
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .hero-badges {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-sexo-m {
+            background: rgba(78, 205, 196, 0.15);
+            color: var(--accent2);
+            border: 1px solid rgba(78, 205, 196, 0.3);
+        }
+
+        .badge-sexo-f {
+            background: rgba(244, 114, 182, 0.15);
+            color: var(--accent5);
+            border: 1px solid rgba(244, 114, 182, 0.3);
+        }
+
+        .badge-renda {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--success);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .badge-so {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .badge-nasc {
+            background: rgba(167, 139, 250, 0.15);
+            color: var(--accent4);
+            border: 1px solid rgba(167, 139, 250, 0.3);
+        }
+
+        /* Details Grid */
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 12px;
+        }
+
+        .detail-item {
+            background: rgba(0,0,0,0.2);
+            padding: 14px 16px;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+        }
+
+        .detail-item:hover {
+            border-color: var(--border-hover);
+            background: rgba(0,0,0,0.3);
+        }
+
+        .detail-label {
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .detail-value {
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            font-weight: 500;
+            word-break: break-word;
+        }
+
+        .detail-value.empty {
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        /* Family Tree Section */
+        .family-section {
+            margin-top: 25px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title .icon {
+            font-size: 1.5rem;
+        }
+
+        .section-count {
+            background: var(--accent);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        /* Family Cards Grid */
+        .family-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px;
+        }
+
+        .family-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 24px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .family-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--card-color, var(--accent));
+            transition: width 0.3s ease;
+        }
+
+        .family-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--border-hover);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+        }
+
+        .family-card:hover::before {
+            width: 6px;
+        }
+
+        .family-card-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 16px;
+        }
+
+        .family-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .family-card-info h4 {
+            font-size: 1.05rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: var(--text-primary);
+        }
+
+        .family-vinculo-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .family-details {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .family-detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .family-detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .family-detail-label {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        .family-detail-value {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-family: 'Inter', monospace;
+            font-weight: 500;
+        }
+
+        .btn-consultar-parente {
+            width: 100%;
+            margin-top: 14px;
+            padding: 10px;
+            background: transparent;
+            border: 1.5px solid var(--border-hover);
+            color: var(--text-secondary);
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-consultar-parente:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-glow);
+        }
+
+        /* Vínculo colors */
+        .vinculo-mae { --card-color: #f472b6; }
+        .vinculo-pai { --card-color: #60a5fa; }
+        .vinculo-filho { --card-color: #4ecdc4; }
+        .vinculo-filha { --card-color: #a78bfa; }
+        .vinculo-conjuge { --card-color: #f59e0b; }
+        .vinculo-irmao { --card-color: #22c55e; }
+        .vinculo-default { --card-color: #ff6b6b; }
+
+        .bg-mae { background: linear-gradient(135deg, #f472b6, #db2777); }
+        .bg-pai { background: linear-gradient(135deg, #60a5fa, #2563eb); }
+        .bg-filho { background: linear-gradient(135deg, #4ecdc4, #0891b2); }
+        .bg-filha { background: linear-gradient(135deg, #a78bfa, #7c3aed); }
+        .bg-conjuge { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .bg-irmao { background: linear-gradient(135deg, #22c55e, #16a34a); }
+        .bg-default { background: linear-gradient(135deg, #ff6b6b, #dc2626); }
+
+        .badge-mae { background: rgba(244, 114, 182, 0.15); color: #f472b6; border: 1px solid rgba(244, 114, 182, 0.3); }
+        .badge-pai { background: rgba(96, 165, 250, 0.15); color: #60a5fa; border: 1px solid rgba(96, 165, 250, 0.3); }
+        .badge-filho { background: rgba(78, 205, 196, 0.15); color: #4ecdc4; border: 1px solid rgba(78, 205, 196, 0.3); }
+        .badge-filha { background: rgba(167, 139, 250, 0.15); color: #a78bfa; border: 1px solid rgba(167, 139, 250, 0.3); }
+        .badge-conjuge { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); }
+        .badge-irmao { background: rgba(34, 197, 94, 0.15); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.3); }
+        .badge-default { background: rgba(255, 107, 107, 0.15); color: #ff6b6b; border: 1px solid rgba(255, 107, 107, 0.3); }
+
+        /* Not Found */
+        .not-found-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 50px;
+            text-align: center;
+        }
+
+        .not-found-icon {
+            font-size: 5rem;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .not-found-card h3 {
+            font-size: 1.5rem;
+            color: var(--danger);
+            margin-bottom: 10px;
+        }
+
+        .not-found-card p {
+            color: var(--text-secondary);
+        }
+
+        /* Error Card */
+        .error-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 24px;
+            padding: 35px;
+        }
+
+        .error-card h3 {
+            color: var(--danger);
+            margin-bottom: 10px;
+        }
+
+        /* JSON Toggle */
+        .json-section {
+            margin-top: 25px;
+            text-align: center;
+        }
+
+        .json-toggle-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 10px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            font-family: 'Inter', monospace;
+        }
+
+        .json-toggle-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .json-content {
+            display: none;
+            margin-top: 15px;
+            background: rgba(0,0,0,0.4);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: left;
+            overflow-x: auto;
+            border: 1px solid var(--border);
+        }
+
+        .json-content pre {
+            color: var(--accent2);
+            font-family: 'Fira Code', 'Courier New', monospace;
+            font-size: 0.8rem;
+            line-height: 1.6;
+        }
+
+        /* History */
+        .history-section {
+            margin-top: 25px;
+        }
+
+        .history-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .history-chip {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .history-chip:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-glow);
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            margin-top: 40px;
+            padding-bottom: 20px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.6rem;
+            }
+
+            .search-row {
+                flex-direction: column;
+            }
+
+            .btn-consultar {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .hero-header {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .details-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .family-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-dark);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-hover);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-grid"></div>
+    <div class="bg-glow"></div>
+
+    <div class="container">
+        <div class="header">
+            <div class="header-icon">🧬</div>
+            <h1>Árvore Genealógica & Consulta CPF</h1>
+            <p>Consulte informações pessoais e explore a lista familiar completa</p>
+        </div>
+
+        <div class="search-section">
+            <div class="search-row">
+                <div class="input-group">
+                    <label for="cpfInput">Número do CPF</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">🔍</span>
+                        <input 
+                            type="text" 
+                            id="cpfInput" 
+                            placeholder="000.000.000-00" 
+                            maxlength="14"
+                            autocomplete="off"
+                        >
+                    </div>
+                </div>
+                <button class="btn-consultar" id="btnConsultar" onclick="consultarCPF()">
+                    <div class="spinner" id="spinner"></div>
+                    <span id="btnText">Consultar</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="resultado"></div>
+
+        <div class="history-section" id="historySection" style="display:none;">
+            <div class="section-header">
+                <div class="section-title">
+                    <span class="icon">📋</span>
+                    Histórico de Consultas
+                </div>
+            </div>
+            <div class="history-list" id="historyList"></div>
+        </div>
+
+        <div class="footer">
+            Árvore Genealógica & Consulta CPF &copy; 2026
+        </div>
+    </div>
+
+    <script>
+        const cpfInput = document.getElementById('cpfInput');
+        const btnConsultar = document.getElementById('btnConsultar');
+        const spinner = document.getElementById('spinner');
+        const btnText = document.getElementById('btnText');
+        const resultadoDiv = document.getElementById('resultado');
+        const historySection = document.getElementById('historySection');
+        const historyList = document.getElementById('historyList');
+
+        let consultaHistory = [];
+
+        // Máscara de CPF
+        cpfInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 11) value = value.slice(0, 11);
+
+            if (value.length > 9) {
+                value = value.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, '$1.$2.$3-$4');
+            } else if (value.length > 6) {
+                value = value.replace(/(\d{3})(\d{3})(\d{1,3})/, '$1.$2.$3');
+            } else if (value.length > 3) {
+                value = value.replace(/(\d{3})(\d{1,3})/, '$1.$2');
+            }
+
+            e.target.value = value;
+        });
+
+        cpfInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') consultarCPF();
+        });
+
+        function getVinculoClass(vinculo) {
+            const v = (vinculo || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u030f]/g, '');
+            if (v.includes('mae')) return 'mae';
+            if (v.includes('pai')) return 'pai';
+            if (v.includes('filha')) return 'filha';
+            if (v.includes('filho')) return 'filho';
+            if (v.includes('conjuge') || v.includes('espos') || v.includes('marid')) return 'conjuge';
+            if (v.includes('irma')) return 'irmao';
+            return 'default';
+        }
+
+        function getAvatarLetter(nome) {
+            if (!nome) return '?';
+            return nome.trim().charAt(0).toUpperCase();
+        }
+
+        function getAvatarGradient(nome) {
+            const colors = [
+                'linear-gradient(135deg, #ff6b6b, #dc2626)',
+                'linear-gradient(135deg, #4ecdc4, #0891b2)',
+                'linear-gradient(135deg, #a78bfa, #7c3aed)',
+                'linear-gradient(135deg, #f59e0b, #d97706)',
+                'linear-gradient(135deg, #f472b6, #db2777)',
+                'linear-gradient(135deg, #22c55e, #16a34a)',
+                'linear-gradient(135deg, #60a5fa, #2563eb)',
+                'linear-gradient(135deg, #fb923c, #ea580c)',
+            ];
+            let hash = 0;
+            for (let i = 0; i < (nome || '').length; i++) {
+                hash = nome.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            return colors[Math.abs(hash) % colors.length];
+        }
+
+        async function consultarCPF(cpfParam) {
+            const cpf = cpfParam || cpfInput.value.replace(/\D/g, '');
+
+            if (!cpfParam && cpf.length !== 11) {
+                alert('Por favor, digite um CPF válido com 11 dígitos.');
+                return;
+            }
+
+            if (!cpfParam) {
+                cpfInput.value = formatCPF(cpf);
+            }
+
+            btnConsultar.disabled = true;
+            spinner.style.display = 'block';
+            btnText.textContent = 'Consultando...';
+            resultadoDiv.innerHTML = '';
+
+            try {
+                const url = `https://searchapi.dnnl.live/consulta?cpf=${cpf}&token_api=1479`;
+                const response = await fetch(url);
+                const data = await response.json();
+
+                renderResult(data, cpf);
+                addToHistory(cpf, data);
+            } catch (error) {
+                resultadoDiv.innerHTML = `
+                    <div class="error-card">
+                        <h3>❌ Erro na Consulta</h3>
+                        <p style="color: var(--text-secondary);">Não foi possível realizar a consulta. Verifique sua conexão.</p>
+                        <p style="color: var(--text-muted); margin-top: 8px; font-size: 0.85rem;">${escapeHtml(error.message)}</p>
+                    </div>
+                `;
+            } finally {
+                btnConsultar.disabled = false;
+                spinner.style.display = 'none';
+                btnText.textContent = 'Consultar';
+            }
+        }
+
+        function renderResult(data, cpfConsultado) {
+            // Não encontrado
+            if (data.status === 404 || data.mensagem) {
+                resultadoDiv.innerHTML = `
+                    <div class="not-found-card">
+                        <div class="not-found-icon">😕</div>
+                        <h3>${escapeHtml(data.mensagem) || 'Nenhum registro encontrado.'}</h3>
+                        <p>Verifique o CPF digitado e tente novamente.</p>
+                        <div class="json-section">
+                            <button class="json-toggle-btn" onclick="toggleJson(this)">{ } Ver JSON</button>
+                            <div class="json-content"><pre>${JSON.stringify(data, null, 2)}</pre></div>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            // Encontrado
+            if (data.status === 200 && data.dados && data.dados.length > 0) {
+                const pessoa = data.dados[0];
+                const sexo = (pessoa.SEXO || '').toUpperCase();
+                const isFeminino = sexo === 'FEMININO';
+
+                let html = `
+                    <div class="results-container" style="display:block;">
+                        <!-- Person Hero -->
+                        <div class="person-hero">
+                            <div class="hero-header">
+                                <div class="hero-avatar" style="background: ${getAvatarGradient(pessoa.NOME)};">
+                                    ${getAvatarLetter(pessoa.NOME)}
+                                </div>
+                                <div class="hero-info">
+                                    <h2>${escapeHtml(pessoa.NOME)}</h2>
+                                    <div class="hero-cpf">${formatCPF(pessoa.CPF)}</div>
+                                    <div class="hero-badges">
+                                        <span class="badge badge-nasc">📅 ${escapeHtml(pessoa.NASC) || 'N/A'}</span>
+                                        <span class="badge ${isFeminino ? 'badge-sexo-f' : 'badge-sexo-m'}">
+                                            ${isFeminino ? '👩 Feminino' : '👨 Masculino'}
+                                        </span>
+                                        ${pessoa.RENDA ? `<span class="badge badge-renda">💰 R$ ${escapeHtml(pessoa.RENDA)}</span>` : ''}
+                                        ${pessoa.SO === 'True' ? `<span class="badge badge-so">⚠️ Situação Especial</span>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="details-grid">
+                                <div class="detail-item">
+                                    <div class="detail-label">👤 Nome Completo</div>
+                                    <div class="detail-value">${escapeHtml(pessoa.NOME) || '<span class="empty">—</span>'}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">🆔 CPF</div>
+                                    <div class="detail-value">${formatCPF(pessoa.CPF) || '<span class="empty">—</span>'}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">🎂 Data de Nascimento</div>
+                                    <div class="detail-value">${escapeHtml(pessoa.NASC) || '<span class="empty">—</span>'}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">⚧ Sexo</div>
+                                    <div class="detail-value">${escapeHtml(pessoa.SEXO) || '<span class="empty">—</span>'}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">📇 RG</div>
+                                    <div class="detail-value">${escapeHtml(pessoa.RG) || '<span class="empty">—</span>'}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">🏛️ Órgão Emissor</div>
+                                    <div class="detail-value">${escapeHtml(pessoa.ORGAO_EMISSOR) || '<span class="empty">—</span>'}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">📍 UF Emissão</div>
+                                    <div class="detail-value">${escapeHtml(pessoa.UF_EMISSAO) || '<span class="empty">—</span>'}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">🗳️ Título de Eleitor</div>
+                                    <div class="detail-value">${escapeHtml(pessoa.TITULO_ELEITOR) || '<span class="empty">—</span>'}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">👩‍👧 Nome da Mãe</div>
+                                    <div class="detail-value">${escapeHtml(pessoa.NOME_MAE) || '<span class="empty">—</span>'}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">👨‍👦 Nome do Pai</div>
+                                    <div class="detail-value">${escapeHtml(pessoa.NOME_PAI) || '<span class="empty">—</span>'}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">💵 Renda</div>
+                                    <div class="detail-value" style="color: var(--success); font-weight: 700;">
+                                        ${pessoa.RENDA ? 'R$ ' + escapeHtml(pessoa.RENDA) : '<span class="empty">—</span>'}
+                                    </div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">⚠️ Situação Especial</div>
+                                    <div class="detail-value">
+                                        ${pessoa.SO === 'True' 
+                                            ? '<span style="color: var(--danger); font-weight: 700;">Sim ⚠️</span>' 
+                                            : '<span style="color: var(--success);">Não</span>'}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                `;
+
+                // Family Section
+                if (data.parentes && data.parentes.length > 0) {
+                    html += `
+                        <div class="family-section">
+                            <div class="section-header">
+                                <div class="section-title">
+                                    <span class="icon">👨‍👩‍👧‍👦</span>
+                                    Lista Familiar
+                                </div>
+                                <span class="section-count">${data.parentes.length} membro${data.parentes.length > 1 ? 's' : ''}</span>
+                            </div>
+                            <div class="family-grid">
+                    `;
+
+                    data.parentes.forEach((parente, index) => {
+                        const vinculoClass = getVinculoClass(parente.VINCULO);
+                        const bgClass = 'bg-' + vinculoClass;
+                        const badgeClass = 'badge-' + vinculoClass;
+                        const cpfVinculo = parente.CPF_VINCULO ? String(parente.CPF_VINCULO).replace(/\D/g, '') : null;
+
+                        html += `
+                            <div class="family-card vinculo-${vinculoClass}">
+                                <div class="family-card-header">
+                                    <div class="family-avatar ${bgClass}">
+                                        ${getAvatarLetter(parente.NOME_VINCULO)}
+                                    </div>
+                                    <div class="family-card-info">
+                                        <h4>${escapeHtml(parente.NOME_VINCULO)}</h4>
+                                        <span class="family-vinculo-badge ${badgeClass}">${escapeHtml(parente.VINCULO)}</span>
+                                    </div>
+                                </div>
+                                <div class="family-details">
+                                    <div class="family-detail-row">
+                                        <span class="family-detail-label">🆔 CPF</span>
+                                        <span class="family-detail-value">${cpfVinculo ? formatCPF(cpfVinculo) : 'N/A'}</span>
+                                    </div>
+                                    <div class="family-detail-row">
+                                        <span class="family-detail-label">🔗 Vínculo</span>
+                                        <span class="family-detail-value" style="color: var(--text-primary);">${escapeHtml(parente.VINCULO)}</span>
+                                    </div>
+                                </div>
+                                ${cpfVinculo ? `
+                                    <button class="btn-consultar-parente" onclick="consultarCPF('${cpfVinculo}')">
+                                        🔍 Consultar este CPF
+                                    </button>
+                                ` : ''}
+                            </div>
+                        `;
+                    });
+
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="family-section">
+                            <div class="section-header">
+                                <div class="section-title">
+                                    <span class="icon">👨‍👩‍👧‍👦</span>
+                                    Lista Familiar
+                                </div>
+                            </div>
+                            <div class="not-found-card" style="padding: 30px;">
+                                <p style="color: var(--text-muted);">Nenhum parente ou vínculo familiar encontrado para esta pessoa.</p>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // JSON Toggle
+                html += `
+                        <div class="json-section">
+                            <button class="json-toggle-btn" onclick="toggleJson(this)">{ } Ver Resposta JSON</button>
+                            <div class="json-content">
+                                <pre>${JSON.stringify(data, null, 2)}</pre>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                resultadoDiv.innerHTML = html;
+            }
+        }
+
+        function addToHistory(cpf, data) {
+            const nome = data.dados && data.dados[0] ? data.dados[0].NOME : 'Desconhecido';
+            const entry = { cpf, nome, time: Date.now() };
+
+            // Remove duplicados
+            consultaHistory = consultaHistory.filter(h => h.cpf !== cpf);
+            consultaHistory.unshift(entry);
+            if (consultaHistory.length > 10) consultaHistory.pop();
+
+            renderHistory();
+        }
+
+        function renderHistory() {
+            if (consultaHistory.length === 0) {
+                historySection.style.display = 'none';
+                return;
+            }
+
+            historySection.style.display = 'block';
+            historyList.innerHTML = consultaHistory.map(h => `
+                <div class="history-chip" onclick="consultarCPF('${h.cpf}')" title="${escapeHtml(h.nome)}">
+                    ${formatCPF(h.cpf)} — ${escapeHtml(h.nome)}
+                </div>
+            `).join('');
+        }
+
+        function toggleJson(btn) {
+            const content = btn.nextElementSibling;
+            if (content.style.display === 'block') {
+                content.style.display = 'none';
+                btn.textContent = '{ } Ver Resposta JSON';
+            } else {
+                content.style.display = 'block';
+                btn.textContent = '{ } Ocultar JSON';
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatCPF(cpf) {
+            if (!cpf) return '';
+            const str = String(cpf).replace(/\D/g, '');
+            if (str.length !== 11) return str;
+            return str.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+        }
+    </script>
+</body>
+</html>
