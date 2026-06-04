@@ -864,7 +864,7 @@
             resultadoDiv.innerHTML = '';
 
             try {
-                const url = `https://api-web-br.vercel.app/api/cpf.js?cpf=${cpf}&token_api=1479`;
+                const url = `https://api-web-br.vercel.app/api/cpf.js?cpf=${cpf}`;
                 const response = await fetch(url);
                 const data = await response.json();
 
