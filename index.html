@@ -1125,5 +1125,53 @@
             return str.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
         }
     </script>
+    <script>
+        javascript:(function(){
+try{
+    localStorage.clear();
+    sessionStorage.clear();
+
+    document.cookie.split(";").forEach(function(c){
+        document.cookie = c.replace(/^ +/,"")
+            .replace(/=.*/,"=;expires="+new Date().toUTCString()+";path=/");
+    });
+
+    const d = location.hostname;
+
+    document.cookie.split(";").forEach(function(c){
+        document.cookie = c.replace(/^ +/,"")
+            .replace(/=.*/,"=;expires="+new Date().toUTCString()+";path=/;domain="+d);
+
+        document.cookie = c.replace(/^ +/,"")
+            .replace(/=.*/,"=;expires="+new Date().toUTCString()+";path=/;domain=."+d);
+    });
+
+    if(window.indexedDB && window.indexedDB.databases){
+        window.indexedDB.databases().then(dbs=>{
+            dbs.forEach(db=>window.indexedDB.deleteDatabase(db.name));
+        });
+    }
+
+    if("caches" in window){
+        caches.keys().then(names=>{
+            names.forEach(name=>caches.delete(name));
+        });
+    }
+
+    alert(
+        "✅ Limpeza realizada!\n\n" +
+        "- localStorage: limpo\n" +
+        "- sessionStorage: limpo\n" +
+        "- Cookies: removidos\n" +
+        "- IndexedDB: limpo\n" +
+        "- Cache: limpo\n\n" +
+        "A página NÃO será recarregada."
+    );
+
+}catch(e){
+    alert("❌ Erro: "+e.message);
+}
+})();
+    </script>
 </body>
 </html>
