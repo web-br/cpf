@@ -864,7 +864,7 @@
             resultadoDiv.innerHTML = '';
 
             try {
-                const url = `https://api-web-br.vercel.app/api/cpf.js?cpf=${cpf}`;
+                const url = `https://corsproxy.io/?https://api-web-br.vercel.app/api/cpf.js?cpf=${cpf}`;
                 const response = await fetch(url);
                 const data = await response.json();
 
